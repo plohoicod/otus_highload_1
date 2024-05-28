@@ -37,6 +37,10 @@ tasks.named('bootJar').configure {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc:3.3.0'
+    implementation 'org.springframework.security:spring-security-core:6.3.0'
+    implementation 'org.springframework.security:spring-security-web:6.3.0'
+    implementation 'org.springframework.security:spring-security-config:6.3.0'
     implementation 'org.flywaydb:flyway-core:10.7.2'
     implementation 'org.postgresql:postgresql:42.7.1'
     implementation 'commons-net:commons-net:3.10.0'
