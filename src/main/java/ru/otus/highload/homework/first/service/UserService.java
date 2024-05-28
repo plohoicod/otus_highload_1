@@ -2,8 +2,10 @@ package ru.otus.highload.homework.first.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.otus.highload.homework.first.dto.AuthorizeDto;
 import ru.otus.highload.homework.first.dto.RegisterDto;
 import ru.otus.highload.homework.first.dto.UserDto;
@@ -32,7 +34,7 @@ public class UserService {
     private final String FIND_USER_BY_LOGIN = "SELECT * FROM users WHERE login like ?;";
 
     private final String REGISTER_USER =
-            "INSERT INTO users (login, password, name, surname, birthday, gender, interests, city) VALUES (?,?, ?, ?, ?, ?, ?, ?);";
+            "INSERT INTO users (login, password, name, surname, birthday, gender, interests, city) VALUES (?,?, ?, ?, ?, ?, ?, ?) RETURNING id;";
 
 
     public AuthorizeDto getUserByLogin(String login) {
@@ -55,6 +57,7 @@ public class UserService {
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return authorizeDto;
@@ -85,12 +88,20 @@ public class UserService {
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return userDto;
+        if (userDto == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        } else {
+            return userDto;
+        }
     }
 
-    public Integer registerUser(RegisterDto registerDto) {
+    public Long registerUser(RegisterDto registerDto) {
+        if (getUserByLogin(registerDto.login()) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        }
         try (Connection connection =
                      DriverManager.getConnection(url, user, password);) {
              String password = pwdEncoder.encode(registerDto.password());
@@ -103,11 +114,16 @@ public class UserService {
              preparedStatement.setString(6, registerDto.gender().toString());
              preparedStatement.setString(7, registerDto.interests());
              preparedStatement.setString(8, registerDto.city());
-             return preparedStatement.executeUpdate();
+             ResultSet resultSet = preparedStatement.executeQuery();
+
+             if (resultSet.next()) {
+                 return resultSet.getLong("id");
+             } else {
+                 return null;
+             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        return null;
     }
 }
